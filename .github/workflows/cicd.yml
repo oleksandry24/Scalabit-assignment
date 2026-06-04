@@ -1,0 +1,160 @@
+name: CI/CD pipeline
+run-name: "${{ github.workflow }} - ${{ github.event_name }} - by ${{ github.actor }}"
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  integration-test:
+    name: Test Integration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: RUN dependencies
+        run: |
+          go mod download
+
+      # RUN TESTS from tests directory
+
+  integration-validate-pipeline:
+    name: Validate CI/CD pipeline configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate YAML syntax
+        run: |
+          pip install yamllint
+          yamllint -d "{extends: relaxed, rules: {line-length: disable, trailing-spaces: disable, indentation: disable, new-line-at-end-of-file: disable}}" .github/workflows/*.yml
+
+      - name: Validate GitHub Actions workflows (actionlint) #Validate if the yaml file has no syntax errors
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color .github/workflows/*.yml
+
+  integration-go-secrets:
+    name: Secret Management
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  integration-go-sast:
+    name: SAST Analysis for Go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Security Check with GoSec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec ./...
+
+  integration-go-test:
+    name: Unit Tests for Go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Run Unit Tests
+        run: |
+          go test -v -cover ./...
+
+  delivery:
+    name: Build Docker Image (Delivery)
+    needs:
+      [
+        integration-test,
+        integration-validate-pipeline,
+        integration-go-secrets,
+        integration-go-sast,
+        integration-go-test,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: docker build -t github-api-manager:latest .
+
+      - name: Container Verification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run -d --name api-go-test -p 8080:8080 -e GITHUB_TOKEN="${GITHUB_TOKEN}" github-api-manager:latest
+
+      - name: Wait for Container to be Healthy
+        run: |
+          timeout=30
+          elapsed=0
+
+          until curl -fs http://localhost:8080/repos > /dev/null; do
+            if [ $elapsed -ge $timeout ]; then
+              echo "Container did not become healthy within $timeout seconds."
+              exit 1
+            fi
+            echo "Waiting for container to be healthy..."
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+          echo "Container is healthy!"
+
+      - name: Show Container logs on failure
+        if: failure()
+        run: docker logs api-go-test
+
+      - name: Stop and Remove Container
+        if: always()
+        run: |
+          docker stop api-go-test || true
+          docker rm -f api-go-test || true
