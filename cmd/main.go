@@ -16,11 +16,8 @@ func main() {
 	}
 
 	ghService := github.NewClient(token)
-	if err := ghService.ValidateToken(); err != nil {
-		log.Fatalf("Failed to validate GitHub token: %v", err)
-	}
 
-	hands := &handlers.Handlers{
+	hands := &handlers.Handler{
 		GithubService: ghService,
 	}
 
@@ -31,7 +28,7 @@ func main() {
 
 	mux.HandleFunc("GET /repos", hands.ListRepos)
 
-	mux.HandleFunc("POST /repos/{owner}/{repo}/prs", hands.ListOpenPrs)
+	mux.HandleFunc("GET /repos/{owner}/{repo}/prs", hands.ListOpenPrs)
 
 	port := "8080"
 	log.Printf("Server is running on port %s", port)
