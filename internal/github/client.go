@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-github/v59/github"
 )
@@ -27,7 +28,7 @@ type RepositoryService interface {
 
 // the real github client using the real token
 func NewClient(token string) RepositoryService {
-	if token == "" || token == "GITHUB_TOKEN" {
+	if token == "" || !strings.HasPrefix(token, "ghp_") && !strings.HasPrefix(token, "github_pat_") {
 		return &Client{github.NewClient(nil)}
 	}
 
