@@ -6,39 +6,40 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/oleksandry24/github-api-manager/internal/github"
 	"github.com/oleksandry24/github-api-manager/internal/handlers"
 )
 
-func getGitHubToken() string {
-	tokenBytes, err := os.ReadFile("/etc/secrets/GITHUB-TOKEN")
-	if err == nil {
-		return strings.TrimSpace(string(tokenBytes))
-	}
+// func getGitHubToken() string {
+// 	tokenBytes, err := os.ReadFile("/etc/secrets/GITHUB-TOKEN")
+// 	if err == nil {
+// 		return strings.TrimSpace(string(tokenBytes))
+// 	}
 
-	token := os.Getenv("GITHUB_TOKEN")
-	if token != "" {
-		return strings.TrimSpace(token)
-	}
+// 	token := os.Getenv("GITHUB_TOKEN")
+// 	if token != "" {
+// 		return strings.TrimSpace(token)
+// 	}
 
-	log.Fatal("CRITICAL: GitHub token not found in /etc/secrets/GITHUB-TOKEN or GITHUB_TOKEN environment variable")
-	return ""
-}
+// 	log.Fatal("CRITICAL: GitHub token not found in /etc/secrets/GITHUB-TOKEN or GITHUB_TOKEN environment variable")
+// 	return ""
+// }
 
 func main() {
 
-	// err := godotenv.Load()
-	// if err != nil {
-	// 	log.Println("No .env file found, relying on OS environment variables")
-	// }
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found, relying on OS environment variables")
+	}
 
-	// token := os.Getenv("GITHUB_TOKEN")
+	token := os.Getenv("GITHUB_TOKEN")
 
-	token := getGitHubToken()
+	// token := getGitHubToken()
 	if token == "" {
 		log.Fatal("fATAL: GITHUB_TOKEN environment variable is required")
 	}

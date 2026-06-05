@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scalabit-challenge-api
-  namespace: scalabit-challenge
 spec:
   replicas: 1
   selector:
@@ -16,13 +15,15 @@ spec:
       containers:
         - name: github-manager-api
           image: github-api-manager:latest
-          volumeMounts:
-            - name: secret-volume
-              mountPath: "/etc/secrets"
-              readOnly: true
           imagePullPolicy: Never
           ports:
             - containerPort: 8080
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: GITHUB-TOKEN
           readinessProbe:
             httpGet:
               path: /health
@@ -35,7 +36,3 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
-      volumes:
-        - name: secret-volume
-          secret:
-            secretName: github-token

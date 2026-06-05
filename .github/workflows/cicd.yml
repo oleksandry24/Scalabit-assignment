@@ -126,16 +126,19 @@ jobs:
           exit-code: "1"
 
   integration-iac-scan:
-    name: IaC Security Scan
+    name: IaC Security Scan (Trivy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - name: Scan k8s directory
-        uses: bridgecrewio/checkov-action@v12
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy for IaC (Kubernetes & Dockerfile)
+        uses: aquasecurity/trivy-action@master
         with:
-          directory: k8s/
-          framework: kubernetes
-          soft_fail: false #
+          scan-type: "config" # look at YAML and Dockerfiles
+          scan-ref: "." # Scans the entire repository
+          format: "table"
+          exit-code: "1" # Breack
+          severity: "CRITICAL,HIGH"
 
   delivery:
     name: Build Docker Image (Delivery)
