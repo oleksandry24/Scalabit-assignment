@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -39,17 +42,16 @@ func main() {
 
 	mux.HandleFunc("GET /repos/{owner}/{repo}/prs", hands.ListOpenPrs)
 
-	// mux.HandleFunc("GET /health", hands.HealthCheck)
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		// w.Write([]byte(`{"status": "ok"}`))
-	})
+	mux.HandleFunc("GET /health", handlers.HealthCheck)
+	// mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	// 	w.WriteHeader(http.StatusOK)
+	// 	w.Header().Set("Content-Type", "application/json")
+	// 	_, _ = w.Write([]byte(`{"status": "ok"}`))
+	// })
 
 	mux.HandleFunc("PUT /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
 
 	port := "8080"
-	log.Printf("Server is running on port %s", port)
 
 	srv := &http.Server{
 		Addr:         ":" + port,
@@ -59,7 +61,26 @@ func main() {
 		IdleTimeout:  15 * time.Second, // Max time to keep connection open
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		log.Printf("Starting server on port %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+
+	}()
+
+	<-ctx.Done()
+	log.Print("Shutting down server...")
+
+	shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdown); err != nil {
+		log.Fatalf("Failed to shutdown server: %v", err)
 	}
+
+	log.Print("Server gracefully stopped")
 }
