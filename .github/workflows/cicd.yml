@@ -39,13 +39,13 @@ jobs:
           go test -v -race -cover -coverprofile=coverage.out ./internal/handlers/...
 
           TCOVERAGE=$(go tool cover -func=coverage.out | grep total | grep | awk '{print substr($3, 1, length($3)-1)}')
-          echo "Total Coverage is $TOTAL_COVERAGE%"
+          echo "Total Coverage is $TCOVERAGE%"
 
-          if (( $(echo "$TOTAL_COVERAGE < 50.0" | bc -l) )); then
-            echo "Test coverage ($TOTAL_COVERAGE%) is below the 50% threshold."
+          if (( $(echo "$TCOVERAGE < 70.0" | bc -l) )); then
+            echo "Test coverage ($TCOVERAGE%) is below the 70% threshold."
             exit 1
           fi
-          echo "Test coverage ($TOTAL_COVERAGE%) is acceptable."
+          echo "Test coverage ($TCOVERAGE%) is acceptable."
 
       # - name: Run Integration Tests
       #   env:
@@ -182,7 +182,7 @@ jobs:
       - name: Scan Docker Image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "github-api-manager:latest"
+          image-ref: "scalabit-challenge-api:latest"
           format: "table"
           exit-code: "1" # if critical issues are found - break
           ignore-unfixed: true
@@ -213,13 +213,13 @@ jobs:
       - name: RUN Image Builder
         run: |
           eval $(minikube docker-env)
-          docker build -t github-api-manager:latest .
+          docker build -t scalabit-challenge-api:latest .
 
       - name: Kubernets Secrets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          kubectl create secret generic github-token \ --from-literal=GITHUB-TOKEN=${GITHUB_TOKEN} \
+          kubectl create secret generic github-token --from-literal=GITHUB-TOKEN="${GITHUB_TOKEN}" \
           --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to Kubernets
@@ -241,7 +241,7 @@ jobs:
           SERVICE_URL=$(minikube service scalabit-challenge-api --url)
           echo "Testing endpoint: $SERVICE_URL/health"
 
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 5 --retry-delay 5 --retry-connrefused $SERVICE_URL/health)
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 5 --retry-delay 5 --retry-connrefused "$SERVICE_URL/health")
 
           if [ "$HTTP_STATUS" -ne 200 ]; then
             echo "Smoke test failed! HTTP Status: $HTTP_STATUS"
