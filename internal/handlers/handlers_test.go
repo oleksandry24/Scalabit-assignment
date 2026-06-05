@@ -2,6 +2,11 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 
 	"github.com/google/go-github/v59/github"
 )
@@ -31,4 +36,83 @@ func (m *MockGithubService) ListOpenPRs(ctx context.Context, owner, repo string)
 	return []*github.PullRequest{}, nil
 }
 
+func (m *MockGithubService) CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) {
+	return &github.Repository{}, nil
+}
+
+func (m *MockGithubService) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error) {
+	vis := "public"
+	if private == true {
+		vis = "private"
+	}
+
+	return &github.Repository{
+		Name:       github.String(repo),
+		Visibility: github.String(vis),
+	}, nil
+}
+
 // Tests
+
+func TestCreateRepo(t *testing.T) {
+	hands := &Handler{GithubService: &MockGithubService{}}
+
+	body := strings.NewReader(`{"name": "test-repo"}`)
+	req, _ := http.NewRequest("POST", "/repos", body)
+	rr := httptest.NewRecorder()
+
+	hands.CreateRepo(rr, req)
+
+	if rr.Code != http.StatusCreated {
+		t.Errorf("Expected status code %d, got %d", http.StatusCreated, rr.Code)
+	}
+
+	var response RepoResponse
+	json.NewDecoder(rr.Body).Decode(&response)
+
+	if response.Name != "test-repo" {
+		t.Errorf("Expected repository name 'test-repo', got '%s'", response.Name)
+	}
+
+	if response.OwnerLogin != "testuser" {
+		t.Errorf("Expected owner login 'testuser', got '%s'", response.OwnerLogin)
+	}
+}
+
+func TestDeleteRepoWithProtection(t *testing.T) {
+
+	hands := &Handler{GithubService: &MockGithubService{}}
+
+	req, _ := http.NewRequest("DELETE", "/repos/torvalds/linux", nil)
+	rr := httptest.NewRecorder()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /repos/{owner}/{repo}", hands.DeleteRepo)
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusForbidden {
+		t.Errorf("Expected status code %d, got %d", http.StatusForbidden, rr.Code)
+	}
+}
+
+func TestDeleteRepoWithoutProtection(t *testing.T) {
+	hands := &Handler{GithubService: &MockGithubService{}}
+
+	req, _ := http.NewRequest("DELETE", "/repos/torvalds/linux?force=true", nil)
+	rr := httptest.NewRecorder()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /repos/{owner}/{repo}", hands.DeleteRepo)
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	var response map[string]string
+	json.NewDecoder(rr.Body).Decode(&response)
+
+	if response["message"] != "Repository torvalds/linux deleted successfully" {
+		t.Errorf("Expected message 'Repository torvalds/linux deleted successfully', got '%s'", response["message"])
+	}
+}
