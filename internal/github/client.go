@@ -19,6 +19,7 @@ type RepositoryService interface {
 	DeleteRepo(ctx context.Context, owner, repo string) error
 	ListRepos(ctx context.Context) ([]*github.Repository, error)
 	ListOpenPRs(ctx context.Context, owner, repo string) ([]*github.PullRequest, error)
+	ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) error
 }
 
 // the real github client using the real token
@@ -74,4 +75,13 @@ func (c *Client) ListOpenPRs(ctx context.Context, owner, repo string) ([]*github
 
 	prs, _, err := c.Client.PullRequests.List(ctx, owner, repo, openPrs)
 	return prs, err
+}
+
+func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) error {
+	repoUpdate := &github.Repository{
+		Private: github.Bool(private),
+	}
+
+	_, _, err := c.Client.Repositories.Edit(ctx, owner, repo, repoUpdate)
+	return err
 }

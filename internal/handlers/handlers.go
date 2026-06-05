@@ -102,3 +102,35 @@ func (h *Handler) ListOpenPrs(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(prs)
 }
+
+// Change Repo Visibility handler (POST /repos/{owner}/{repo}/change-visibility)
+func (h *Handler) ChangeRepoVisibility(w http.ResponseWriter, r *http.Request) {
+
+	owner := r.PathValue("owner")
+	repo := r.PathValue("repo")
+
+	// Validate input
+	if owner == "" || repo == "" {
+		http.Error(w, "Owner and repository name are required", http.StatusBadRequest)
+		return
+	}
+
+	type ChangeVisibilityRequest struct {
+		Private bool `json:"private"`
+	}
+
+	var req ChangeVisibilityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	err := h.GithubService.ChangeRepoVisibility(r.Context(), owner, repo, req.Private)
+	if err != nil {
+		http.Error(w, "Failed to change repository visibility", http.StatusInternalServerError)
+		return
+	}
+
+	
+	w.WriteHeader(http.StatusNoContent)
+}
