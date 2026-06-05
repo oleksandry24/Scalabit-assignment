@@ -184,3 +184,10 @@ func (h *Handler) ChangeRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(mapToRepoResponse(updatedRepo))
 }
+
+// // Health Check (GET /health)
+// func HealthCheck(w http.ResponseWriter, r *http.Request) {
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+// }

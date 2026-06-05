@@ -11,7 +11,7 @@ COPY . .
 
 RUN go build -o /api ./cmd/api/main.go
 
-FROM alpine:lastest
+FROM alpine:latest
 
 WORKDIR /home/appuser/
 

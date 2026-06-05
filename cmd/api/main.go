@@ -39,8 +39,11 @@ func main() {
 
 	mux.HandleFunc("GET /repos/{owner}/{repo}/prs", hands.ListOpenPrs)
 
+	// mux.HandleFunc("GET /health", hands.HealthCheck)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status": "ok"}`))
 	})
 
 	mux.HandleFunc("PUT /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
