@@ -49,7 +49,7 @@ func (c *Client) CreateRepo(ctx context.Context, name string) (*github.Repositor
 	// create a new repository with the given name and confirm if the token is valid
 	repo := &github.Repository{
 		Name:    github.String(name),
-		Private: github.Bool(true),
+		Private: github.Bool(false),
 	}
 
 	createdRepo, _, err := c.Repositories.Create(ctx, "", repo) // "" means user checked by the token
