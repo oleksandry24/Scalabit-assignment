@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -185,9 +186,13 @@ func (h *Handler) ChangeRepoVisibility(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(mapToRepoResponse(updatedRepo))
 }
 
-// // Health Check (GET /health)
-// func HealthCheck(w http.ResponseWriter, r *http.Request) {
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-// }
+func WriteJson(w http.ResponseWriter, status int, data interface{}) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(data); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(buf.Bytes())
+}
