@@ -120,14 +120,6 @@ func (m *MockGithubService) ChangeRepoVisibility(ctx context.Context, owner, rep
 
 // get 100% coverage forcing the json
 
-type mockJsonErrorWriter struct{}
-
-func (m *mockJsonErrorWriter) Header() http.Header { return http.Header{} }
-func (m *mockJsonErrorWriter) Write([]byte) (int, error) {
-	return 0, errors.New("simulated write error")
-}
-func (m *mockJsonErrorWriter) WriteHeader(statusCode int) {}
-
 // Test 1: The Error Path
 func TestWriteJSON_Error(t *testing.T) {
 	w := httptest.NewRecorder()
@@ -369,7 +361,7 @@ func TestCreateRepo(t *testing.T) {
 	}
 
 	var response RepoResponse
-	json.NewDecoder(rr.Body).Decode(&response)
+	_ = json.NewDecoder(rr.Body).Decode(&response)
 
 	if response.Name != "test-repo" {
 		t.Errorf("Expected repository name 'test-repo', got '%s'", response.Name)
@@ -411,7 +403,7 @@ func TestDeleteRepoWithoutProtection(t *testing.T) {
 	}
 
 	var response map[string]string
-	json.NewDecoder(rr.Body).Decode(&response)
+	_ = json.NewDecoder(rr.Body).Decode(&response)
 
 	if response["message"] != "Repository testuser/linux deleted successfully" {
 		t.Errorf("Expected message 'Repository testuser/linux deleted successfully', got '%s'", response["message"])
@@ -496,7 +488,7 @@ func TestChangeRepoVisibility(t *testing.T) {
 	}
 
 	var response RepoResponse
-	json.NewDecoder(rr.Body).Decode(&response)
+	_ = json.NewDecoder(rr.Body).Decode(&response)
 
 	if response.Visibility != "private" {
 		t.Errorf("Expected visibility 'private', got '%s'", response.Visibility)
