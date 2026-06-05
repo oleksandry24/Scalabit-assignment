@@ -48,7 +48,21 @@ func (m *MockGithubService) ListOpenPRs(ctx context.Context, owner, repo string)
 }
 
 func (m *MockGithubService) CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) {
-	return &github.Repository{}, nil
+	if repo == "linux" {
+		repoInfo := &github.Repository{
+			Name:       github.String("linux"),
+			ForksCount: github.Int(500), // Trigger the guardrail!
+			OpenIssues: github.Int(100),
+			Size:       github.Int(1500),
+		}
+		return repoInfo, nil
+	}
+	return &github.Repository{
+		Name:       github.String(repo),
+		ForksCount: github.Int(0),
+		OpenIssues: github.Int(0),
+		Size:       github.Int(100),
+	}, nil
 }
 
 func (m *MockGithubService) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error) {
@@ -94,7 +108,7 @@ func TestDeleteRepoWithProtection(t *testing.T) {
 
 	hands := &Handler{GithubService: &MockGithubService{}}
 
-	req, _ := http.NewRequest("DELETE", "/repos/torvalds/linux", nil)
+	req, _ := http.NewRequest("DELETE", "/repos/testuser/linux", nil)
 	rr := httptest.NewRecorder()
 
 	mux := http.NewServeMux()
@@ -109,7 +123,7 @@ func TestDeleteRepoWithProtection(t *testing.T) {
 func TestDeleteRepoWithoutProtection(t *testing.T) {
 	hands := &Handler{GithubService: &MockGithubService{}}
 
-	req, _ := http.NewRequest("DELETE", "/repos/torvalds/linux?force=true", nil)
+	req, _ := http.NewRequest("DELETE", "/repos/testuser/linux?force=true", nil)
 	rr := httptest.NewRecorder()
 
 	mux := http.NewServeMux()
@@ -123,8 +137,8 @@ func TestDeleteRepoWithoutProtection(t *testing.T) {
 	var response map[string]string
 	json.NewDecoder(rr.Body).Decode(&response)
 
-	if response["message"] != "Repository torvalds/linux deleted successfully" {
-		t.Errorf("Expected message 'Repository torvalds/linux deleted successfully', got '%s'", response["message"])
+	if response["message"] != "Repository testuser/linux deleted successfully" {
+		t.Errorf("Expected message 'Repository testuser/linux deleted successfully', got '%s'", response["message"])
 	}
 }
 
