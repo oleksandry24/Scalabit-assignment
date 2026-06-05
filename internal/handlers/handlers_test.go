@@ -44,7 +44,19 @@ func (m *MockGithubService) ListRepos(ctx context.Context) ([]*github.Repository
 }
 
 func (m *MockGithubService) ListOpenPRs(ctx context.Context, owner, repo string) ([]*github.PullRequest, error) {
-	return []*github.PullRequest{}, nil
+	prs := []*github.PullRequest{
+		{
+			Title: github.String("commit 1"),
+			User:  &github.User{Login: github.String("testuser")},
+			State: github.String("open"),
+		},
+		{
+			Title: github.String("commit 2"),
+			User:  &github.User{Login: github.String("testuser-2")},
+			State: github.String("open"),
+		},
+	}
+	return prs, nil
 }
 
 func (m *MockGithubService) CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) {
@@ -167,7 +179,7 @@ func TestListRepos(t *testing.T) {
 	}
 
 	if response[0].Name != "frontend-app" {
-		t.Errorf("Expected status code 'test-repo', got %d", response[0].Name)
+		t.Errorf("Expected status code 'test-repo', got %s", response[0].Name)
 	}
 
 	if response[1].Name != "backend-api" || response[1].Visibility != "private" {
@@ -180,7 +192,7 @@ func TestChangeRepoVisibility(t *testing.T) {
 	hands := &Handler{GithubService: &MockGithubService{}}
 
 	body := strings.NewReader(`{"private": true}`)
-	req, err := http.NewRequest("POST", "/repos/testuser/test-repo/change-visibility", body)
+	req, _ := http.NewRequest("POST", "/repos/testuser/test-repo/change-visibility", body)
 	rr := httptest.NewRecorder()
 
 	mux := http.NewServeMux()
