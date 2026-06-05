@@ -1,15 +1,43 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/oleksandry24/github-api-manager/internal/github"
 
-	"encoding/json"
+	gh "github.com/google/go-github/v59/github"
 )
 
 type Handler struct {
 	GithubService github.RepositoryService
+}
+
+type RepoResponse struct {
+	OwnerLogin   string `json:"owner_login"`
+	OwnerHTMLURL string `json:"owner_html_url"`
+	Name         string `json:"name"`
+	FullName     string `json:"full_name"`
+	HTMLURL      string `json:"html_url"`
+	CloneURL     string `json:"clone_url"`
+	GitURL       string `json:"git_url"`
+	SSHURL       string `json:"ssh_url"`
+	Visibility   string `json:"visibility"`
+}
+
+func mapToRepoResponse(repo *gh.Repository) RepoResponse {
+	return RepoResponse{
+		OwnerLogin:   repo.GetOwner().GetLogin(),
+		OwnerHTMLURL: repo.GetOwner().GetHTMLURL(),
+		Name:         repo.GetName(),
+		FullName:     repo.GetFullName(),
+		HTMLURL:      repo.GetHTMLURL(),
+		CloneURL:     repo.GetCloneURL(),
+		GitURL:       repo.GetGitURL(),
+		SSHURL:       repo.GetSSHURL(),
+		Visibility:   repo.GetVisibility(),
+	}
 }
 
 // Create Repo handler (POST /repos)
@@ -42,7 +70,7 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 	// output the details of created repo
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(repo)
+	json.NewEncoder(w).Encode(mapToRepoResponse(repo))
 }
 
 // Delete Repo handler (DELETE /repos/{owner}/{repo})
@@ -50,6 +78,7 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 
 	owner := r.PathValue("owner")
 	repo := r.PathValue("repo")
+	force := r.URL.Query().Get("force") == "true" // Force is used to delete a repo even if it has forks, open issues, or is larger than 1000kb, we block it unless "force=true" is in the URL.
 
 	// Validate input
 	if owner == "" || repo == "" {
@@ -57,14 +86,29 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	repoInfo, err := h.GithubService.CheckRepo(r.Context(), owner, repo)
+	if err != nil {
+		http.Error(w, "Failed to check repository, Not Found!", http.StatusInternalServerError)
+		return
+	}
+
+	if !force {
+		if repoInfo.GetForksCount() > 0 || repoInfo.GetOpenIssuesCount() > 0 || repoInfo.GetSize() > 1000 {
+			http.Error(w, "Repository Protection! This repository looks important. Pass ?force=true in the URL to delete it anyway.", http.StatusForbidden)
+			return
+		}
+	}
+
 	// request the delete to the github client
-	err := h.GithubService.DeleteRepo(r.Context(), owner, repo)
+	err = h.GithubService.DeleteRepo(r.Context(), owner, repo)
 	if err != nil {
 		http.Error(w, "Failed to delete repository", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Repository %s/%s deleted successfully", owner, repo)})
 }
 
 // List Repos handler (GET /repos)
@@ -77,7 +121,12 @@ func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(repos)
+	var repoResponses []RepoResponse
+	for _, repo := range repos {
+		repoResponses = append(repoResponses, mapToRepoResponse(repo))
+	}
+	json.NewEncoder(w).Encode(repoResponses)
+	w.WriteHeader(http.StatusOK)
 }
 
 // List Open PRs handler (GET /repos/{owner}/{repo}/prs)
@@ -125,12 +174,13 @@ func (h *Handler) ChangeRepoVisibility(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.GithubService.ChangeRepoVisibility(r.Context(), owner, repo, req.Private)
+	updatedRepo, err := h.GithubService.ChangeRepoVisibility(r.Context(), owner, repo, req.Private)
 	if err != nil {
 		http.Error(w, "Failed to change repository visibility", http.StatusInternalServerError)
 		return
 	}
 
-	
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(mapToRepoResponse(updatedRepo))
 }

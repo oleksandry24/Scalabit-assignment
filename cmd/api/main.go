@@ -43,7 +43,7 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	mux.HandleFunc("POST /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
+	mux.HandleFunc("PUT /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
 
 	port := "8080"
 	log.Printf("Server is running on port %s", port)

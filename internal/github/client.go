@@ -19,7 +19,10 @@ type RepositoryService interface {
 	DeleteRepo(ctx context.Context, owner, repo string) error
 	ListRepos(ctx context.Context) ([]*github.Repository, error)
 	ListOpenPRs(ctx context.Context, owner, repo string) ([]*github.PullRequest, error)
-	ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) error
+
+	CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) // repo stats
+
+	ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error)
 }
 
 // the real github client using the real token
@@ -35,7 +38,7 @@ func NewClient(token string) RepositoryService {
 	if err != nil {
 		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
 	}
-	return &Client{github.NewClient(nil).WithAuthToken(token)}
+	return &Client{ghClient}
 }
 
 // Methods
@@ -77,11 +80,17 @@ func (c *Client) ListOpenPRs(ctx context.Context, owner, repo string) ([]*github
 	return prs, err
 }
 
-func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) error {
+func (c *Client) CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) {
+	repoInfo, _, err := c.Client.Repositories.Get(ctx, owner, repo)
+	return repoInfo, err
+}
+
+func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error) {
+
 	repoUpdate := &github.Repository{
 		Private: github.Bool(private),
 	}
 
-	_, _, err := c.Client.Repositories.Edit(ctx, owner, repo, repoUpdate)
-	return err
+	updatedRepo, _, err := c.Client.Repositories.Edit(ctx, owner, repo, repoUpdate)
+	return updatedRepo, err
 }
