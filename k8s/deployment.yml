@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scalabit-challenge-api
+  namespace: scalabit-challenge
 spec:
   replicas: 1
   selector:
