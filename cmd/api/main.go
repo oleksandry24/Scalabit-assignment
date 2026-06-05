@@ -52,7 +52,7 @@ func main() {
 	log.Printf("Server is running on port %s", port)
 
 	srv := &http.Server{
-		Addr:         port,
+		Addr:         ":" + port,
 		Handler:      mux,
 		ReadTimeout:  5 * time.Second,  // Max time to read the request
 		WriteTimeout: 10 * time.Second, // Max time to write the response
