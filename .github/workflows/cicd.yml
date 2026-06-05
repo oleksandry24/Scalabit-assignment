@@ -37,7 +37,7 @@ jobs:
       - name: Run Unit Tests
         run: |
           go test -v -race -cover ./...
-      
+
       # - name: Run Integration Tests
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,39 +153,39 @@ jobs:
           docker stop api-go-test || true
           docker rm -f api-go-test || true
 
-  # deploy:
-  #   name: Deploy to Production
-  #   needs: [delivery]
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v6
+  deploy:
+    name: Deploy to Production
+    needs: [delivery]
+    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-  #     - name: Start Minicube
-  #       uses: medyagh/setup-minikube@latest
+      - name: Start Minicube
+        uses: medyagh/setup-minikube@latest
 
-  #     - name: RUN Image Builder
-  #       run: |
-  #       eval $(minikube docker-env)
-  #       docker build -t github-api-manager:latest .
+      - name: RUN Image Builder
+        run: |
+          eval $(minikube docker-env)
+          docker build -t github-api-manager:latest .
 
-  #     - name: Kubernets Secrets
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       run: |
-  #       kubectl create secret generic github-token \ --from-literal=GITHUB-TOKEN=${GITHUB_TOKEN} \
-  #       --dry-run=client -o yaml | kubectl apply -f -
+      - name: Kubernets Secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kubectl create secret generic github-token \ --from-literal=GITHUB-TOKEN=${GITHUB_TOKEN} \
+          --dry-run=client -o yaml | kubectl apply -f -
 
-  #     - name: Deploy to Kubernets
-  #       run: kubectl apply -f k8s/
+      - name: Deploy to Kubernets
+        run: kubectl apply -f k8s/
 
-  #     - name: Verify Deployment
-  #       run: |
-  #         kubectl rollout status deployment/scalabit-challenge-api --timeout=90s || (kubectl get pods && kubectl logs -l app=scalabit-challenge-api && exit 1)
+      - name: Verify Deployment
+        run: |
+          kubectl rollout status deployment/scalabit-challenge-api --timeout=90s || (kubectl get pods && kubectl logs -l app=scalabit-challenge-api && exit 1)
 
-  #     - name: Show Status
-  #       if: always()
-  #       run: |
-  #       kubectl get pods
-  #       kubectl get services
+      - name: Show Status
+        if: always()
+        run: |
+          kubectl get pods
+          kubectl get services

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scalabit-challenge-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scalabit-challenge-api
+  template:
+    metadata:
+      labels:
+        app: scalabit-challenge-api
+    spec:
+      containers:
+        - name: github-manager-api
+          image: github-api-manager:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: GITHUB-TOKEN
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
