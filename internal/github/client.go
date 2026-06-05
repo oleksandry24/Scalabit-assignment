@@ -51,12 +51,12 @@ func (c *Client) CreateRepo(ctx context.Context, name string) (*github.Repositor
 		Private: github.Bool(true),
 	}
 
-	createdRepo, _, err := c.Client.Repositories.Create(ctx, "", repo) // "" means user checked by the token
+	createdRepo, _, err := c.Repositories.Create(ctx, "", repo) // "" means user checked by the token
 	return createdRepo, err
 }
 
 func (c *Client) DeleteRepo(ctx context.Context, owner, repo string) error {
-	_, err := c.Client.Repositories.Delete(ctx, owner, repo)
+	_, err := c.Repositories.Delete(ctx, owner, repo)
 	return err
 }
 
@@ -67,7 +67,7 @@ func (c *Client) ListRepos(ctx context.Context) ([]*github.Repository, error) {
 	}
 
 	// List repositories for the authenticated client
-	repos, _, err := c.Client.Repositories.ListByAuthenticatedUser(ctx, sortedRepos)
+	repos, _, err := c.Repositories.ListByAuthenticatedUser(ctx, sortedRepos)
 	return repos, err
 }
 
@@ -76,12 +76,12 @@ func (c *Client) ListOpenPRs(ctx context.Context, owner, repo string) ([]*github
 		State: "open",
 	}
 
-	prs, _, err := c.Client.PullRequests.List(ctx, owner, repo, openPrs)
+	prs, _, err := c.PullRequests.List(ctx, owner, repo, openPrs)
 	return prs, err
 }
 
 func (c *Client) CheckRepo(ctx context.Context, owner, repo string) (*github.Repository, error) {
-	repoInfo, _, err := c.Client.Repositories.Get(ctx, owner, repo)
+	repoInfo, _, err := c.Repositories.Get(ctx, owner, repo)
 	return repoInfo, err
 }
 
@@ -91,6 +91,6 @@ func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, p
 		Private: github.Bool(private),
 	}
 
-	updatedRepo, _, err := c.Client.Repositories.Edit(ctx, owner, repo, repoUpdate)
+	updatedRepo, _, err := c.Repositories.Edit(ctx, owner, repo, repoUpdate)
 	return updatedRepo, err
 }

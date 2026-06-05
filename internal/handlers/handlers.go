@@ -70,7 +70,7 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 	// output the details of created repo
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(mapToRepoResponse(repo))
+	_ = json.NewEncoder(w).Encode(mapToRepoResponse(repo))
 }
 
 // Delete Repo handler (DELETE /repos/{owner}/{repo})
@@ -108,7 +108,7 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Repository %s/%s deleted successfully", owner, repo)})
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Repository %s/%s deleted successfully", owner, repo)})
 }
 
 // List Repos handler (GET /repos)
@@ -125,7 +125,7 @@ func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
 	for _, repo := range repos {
 		repoResponses = append(repoResponses, mapToRepoResponse(repo))
 	}
-	json.NewEncoder(w).Encode(repoResponses)
+	_ = json.NewEncoder(w).Encode(repoResponses)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -149,7 +149,7 @@ func (h *Handler) ListOpenPrs(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(prs)
+	_ = json.NewEncoder(w).Encode(prs)
 }
 
 // Change Repo Visibility handler (POST /repos/{owner}/{repo}/change-visibility)
@@ -182,5 +182,5 @@ func (h *Handler) ChangeRepoVisibility(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(mapToRepoResponse(updatedRepo))
+	_ = json.NewEncoder(w).Encode(mapToRepoResponse(updatedRepo))
 }

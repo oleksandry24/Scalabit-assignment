@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -40,14 +41,22 @@ func main() {
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
 	})
 
 	mux.HandleFunc("PUT /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
 
 	port := "8080"
 	log.Printf("Server is running on port %s", port)
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+
+	srv := &http.Server{
+		Addr:         port,
+		Handler:      mux,
+		ReadTimeout:  5 * time.Second,  // Max time to read the request
+		WriteTimeout: 10 * time.Second, // Max time to write the response
+		IdleTimeout:  15 * time.Second, // Max time to keep connection open
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
