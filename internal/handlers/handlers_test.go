@@ -29,7 +29,18 @@ func (m *MockGithubService) DeleteRepo(ctx context.Context, owner, repo string) 
 }
 
 func (m *MockGithubService) ListRepos(ctx context.Context) ([]*github.Repository, error) {
-	return []*github.Repository{}, nil
+	return []*github.Repository{
+		{
+			Name:       github.String("frontend-app"),
+			Visibility: github.String("public"),
+			Owner:      &github.User{Login: github.String("testuser")},
+		},
+		{
+			Name:       github.String("backend-api"),
+			Visibility: github.String("private"),
+			Owner:      &github.User{Login: github.String("testuser")},
+		},
+	}, nil
 }
 
 func (m *MockGithubService) ListOpenPRs(ctx context.Context, owner, repo string) ([]*github.PullRequest, error) {
@@ -114,5 +125,62 @@ func TestDeleteRepoWithoutProtection(t *testing.T) {
 
 	if response["message"] != "Repository torvalds/linux deleted successfully" {
 		t.Errorf("Expected message 'Repository torvalds/linux deleted successfully', got '%s'", response["message"])
+	}
+}
+
+func TestListRepos(t *testing.T) {
+	hands := &Handler{GithubService: &MockGithubService{}}
+
+	req := httptest.NewRequest("GET", "/repos", nil)
+	rr := httptest.NewRecorder()
+
+	hands.ListRepos(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	var response []RepoResponse
+	err := json.NewDecoder(rr.Body).Decode(&response)
+
+	if err != nil {
+		t.Errorf("Failed to decode response body: %v", err)
+	}
+
+	// mock data mapped correctly?
+	if len(response) != 2 {
+		t.Errorf("Expected 2 repositories, got %d", len(response))
+	}
+
+	if response[0].Name != "frontend-app" {
+		t.Errorf("Expected status code 'test-repo', got %d", response[0].Name)
+	}
+
+	if response[1].Name != "backend-api" || response[1].Visibility != "private" {
+		t.Errorf("Expected second repo to be 'backend-api', got %s", response[1].Name)
+	}
+
+}
+
+func TestChangeRepoVisibility(t *testing.T) {
+	hands := &Handler{GithubService: &MockGithubService{}}
+
+	body := strings.NewReader(`{"private": true}`)
+	req, err := http.NewRequest("POST", "/repos/testuser/test-repo/change-visibility", body)
+	rr := httptest.NewRecorder()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
+	mux.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("Expected status code %d, got %d", http.StatusOK, rr.Code)
+	}
+
+	var response RepoResponse
+	json.NewDecoder(rr.Body).Decode(&response)
+
+	if response.Visibility != "private" {
+		t.Errorf("Expected visibility 'private', got '%s'", response.Visibility)
 	}
 }
