@@ -68,6 +68,9 @@ func main() {
 
 	mux.HandleFunc("PUT /repos/{owner}/{repo}/change-visibility", hands.ChangeRepoVisibility)
 
+	// Tenta usar http.StripPrefix se o "/" simples continuar a falhar
+	mux.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./static"))))
+
 	port := "8080"
 
 	srv := &http.Server{

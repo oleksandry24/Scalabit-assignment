@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scalabit DevSecOps API</title>
+    <style>
+      :root {
+        --primary: #0969da;
+        --primary-hover: #0353a4;
+        --danger: #cf222e;
+        --danger-hover: #a40e26;
+        --bg: #f6f8fa;
+        --card-bg: #ffffff;
+        --text-main: #24292f;
+        --text-muted: #57606a;
+        --border: #d0d7de;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial,
+          sans-serif;
+        background-color: var(--bg);
+        color: var(--text-main);
+        margin: 0;
+        padding: 0;
+        line-height: 1.5;
+      }
+
+      /* Navbar & Health Check */
+      .navbar {
+        background-color: #24292f;
+        color: white;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .nav-brand {
+        font-size: 1.2rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .health-badge {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        background-color: #2da44e;
+        border-radius: 50%;
+        box-shadow: 0 0 8px #2da44e;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(45, 164, 78, 0.7);
+        }
+        70% {
+          transform: scale(1);
+          box-shadow: 0 0 0 6px rgba(45, 164, 78, 0);
+        }
+        100% {
+          transform: scale(0.95);
+          box-shadow: 0 0 0 0 rgba(45, 164, 78, 0);
+        }
+      }
+
+      /* Main Layout */
+      .container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Cards & Panels */
+      .panel {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 3px 6px rgba(140, 149, 159, 0.15);
+      }
+
+      .panel h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+      }
+
+      /* Forms & Buttons */
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 1rem;
+        box-sizing: border-box;
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+      }
+
+      button {
+        padding: 8px 16px;
+        border: 1px solid rgba(27, 31, 36, 0.15);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        background-color: var(--primary);
+        color: white;
+        transition: 0.2s;
+      }
+      button:hover {
+        background-color: var(--primary-hover);
+      }
+
+      button.secondary {
+        background-color: #f6f8fa;
+        color: var(--text-main);
+      }
+      button.secondary:hover {
+        background-color: #f3f4f6;
+      }
+
+      button.danger {
+        background-color: var(--danger);
+      }
+      button.danger:hover {
+        background-color: var(--danger-hover);
+      }
+
+      /* Repository List Items */
+      .repo-item {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: box-shadow 0.2s;
+      }
+      .repo-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .repo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .repo-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin: 0 0 5px 0;
+      }
+      .repo-meta {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 15px;
+      }
+
+      .badge {
+        background-color: #eaf5ff;
+        color: var(--primary);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        border: 1px solid #cce5ff;
+      }
+
+      .repo-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      /* Pull Requests Section */
+      .pr-container {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-left: 3px solid var(--primary);
+        border-radius: 4px;
+        font-size: 0.9rem;
+        display: none;
+      }
+      .pr-item {
+        padding: 5px 0;
+        border-bottom: 1px solid #eaeef2;
+      }
+      .pr-item:last-child {
+        border-bottom: none;
+      }
+      .pr-item a {
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .pr-item a:hover {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+
+      /* Utils */
+      .text-center {
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .loader {
+        font-style: italic;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-brand">📦 Scalabit Challenge API Manager</div>
+      <div class="health-badge" id="healthBadge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="healthText">Verifying API health...</span>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div>
+        
+
+        <dialog id="repoModal" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; width: 300px;">
+            <h2>Create Repository</h2>
+            <div class="form-group">
+                <label>Repository Name:</label>
+                <input type="text" id="repoName" placeholder="Ex: my-project">
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="secondary" onclick="document.getElementById('repoModal').close()" style="background-color: var(--danger); color: white;">Cancel</button>
+                <button onclick="createRepo()">Create</button>
+            </div>
+            <div id="createMsg" style="margin-top: 10px; font-size: 0.8rem; text-align: center;"></div>
+        </dialog>
+
+      <div>
+        <div class="panel">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 1px solid var(--border);
+              padding-bottom: 0.5rem;
+              margin-bottom: 1rem;
+            "
+          >
+            <h2 style="border: none; padding: 0; margin: 0">
+              My Repositories
+            </h2>
+            
+            <div style="display: flex; gap: 10px;">
+              <button onclick="document.getElementById('repoModal').showModal()" style="display: flex; align-items: center; gap: 5px;">
+            <span>+</span> Create New Repository
+            </button>
+            <button class="secondary" onclick="loadRepos()" style="display: flex; align-items: center; gap: 5px;">
+                <span></span> Update
+            </button>
+        
+    </div>
+          </div>
+
+          <div id="repoList">
+            <p class="text-center loader">
+              Loading repositories from GitHub...
+            </p>
+          </div>
+          <div
+            id="pagination"
+            style="
+              margin-top: 20px;
+              display: flex;
+              justify-content: center;
+              gap: 10px;
+            "
+          >
+            <button class="secondary" id="prevBtn" onclick="changePage(-1)">
+              « Anterior
+            </button>
+            <span id="pageInfo" style="align-self: center">Página 1</span>
+            <button class="secondary" id="nextBtn" onclick="changePage(1)">
+              Seguinte »
+            </button>
+          </div>
+        </div>
+      </div>
+    
+    </div>
+
+    <script>
+      let currentPage = 1;
+      const reposPerPage = 5; // Quantos repos queres ver por página
+      let allRepos = []; // Armazenamos aqui a lista total
+
+      async function loadRepos() {
+        const list = document.getElementById("repoList");
+        list.innerHTML = '<p class="text-center loader">A carregar...</p>';
+
+        try {
+          const res = await fetch("/repos");
+          allRepos = await res.json(); // Guardamos todos
+          currentPage = 1; // Reset para a página 1
+          renderPage(); // Renderiza a primeira página
+        } catch (err) {
+          list.innerHTML = `<p class="text-center" style="color: var(--danger);">Erro ao carregar.</p>`;
+        }
+      }
+
+      function renderPage() {
+        const list = document.getElementById("repoList");
+        const start = (currentPage - 1) * reposPerPage;
+        const end = start + reposPerPage;
+        const paginatedRepos = allRepos.slice(start, end);
+
+        list.innerHTML = "";
+        paginatedRepos.forEach((repo) => {
+          // Extrair owner (assumindo a estrutura normal do GitHub JSON)
+          const ownerLogin = repo.owner_login;
+
+          list.innerHTML += `
+        <div class="repo-item" id="repo-${repo.name}">
+            <div class="repo-header">
+                <div>
+                    <h3 class="repo-title">${repo.name}</h3>
+                    <div class="repo-meta">
+                        <span class="badge">${repo.visibility === "private" ? "🔒 Private" : "🌍 Public"}</span>
+                    </div>
+                </div>
+                <div class="repo-actions">
+                    <button class="secondary" onclick="toggleDetails('${repo.name}')">Details</button>
+                    <button class="secondary" onclick="loadPRs('${ownerLogin}', '${repo.name}')">Open PRs</button>
+                    <button class="danger" onclick="deleteRepo('${ownerLogin}', '${repo.name}')">Delete</button>
+                </div>
+            </div>
+            
+            <div id="details-${repo.name}" class="pr-container" style="display: none; text-align: left;">
+                <p><strong>Full Name:</strong> ${repo.full_name}</p>
+                <p><strong>Owner:</strong> ${repo.owner_login}</p>
+                <p><strong>URL:</strong> <a href="${repo.html_url}" target="_blank">${repo.html_url}</a></p>
+                <p><strong>Clone URL (HTTP):</strong> <a href="${repo.clone_url}" target="_blank">${repo.clone_url}</a></p>
+                <p><strong>Clone URL (SSH):</strong> <a href="${repo.ssh_url}" target="_blank">${repo.ssh_url}</a></p>
+                <p>
+                    <button class="secondary" style="margin-left: 10px;" onclick="changeVisibility('${ownerLogin}', '${repo.name}', '${repo.visibility}')">
+                        Change Visibility
+                    </button>
+                </p>
+            </div>
+
+            <div class="pr-container" id="prs-${repo.name}"></div>
+        </div>
+    `;
+        });
+
+        // Atualiza controlos
+        document.getElementById("pageInfo").innerText = `Página ${currentPage}`;
+        document.getElementById("prevBtn").disabled = currentPage === 1;
+        document.getElementById("nextBtn").disabled = end >= allRepos.length;
+      }
+
+      function changePage(direction) {
+        currentPage += direction;
+        renderPage();
+      }
+      // --- 1. HEALTH CHECK ---
+      async function checkHealth() {
+        const text = document.getElementById("healthText");
+        const dot = document.getElementById("statusDot");
+        try {
+          const res = await fetch("/health");
+          if (res.ok) {
+            text.innerText = "API Online";
+            dot.style.backgroundColor = "#2da44e";
+            dot.style.boxShadow = "0 0 8px #2da44e";
+          } else {
+            throw new Error("API error");
+          }
+        } catch (error) {
+          text.innerText = "API Offline";
+          dot.style.backgroundColor = "var(--danger)";
+          dot.style.boxShadow = "0 0 8px var(--danger)";
+        }
+      }
+
+      // --- 2. LISTAR REPOSITÓRIOS ---
+      //   async function loadRepos() {
+      //     const list = document.getElementById("repoList");
+      //     list.innerHTML =
+      //       '<p class="text-center loader">Syncronizing with GitHub...</p>';
+
+      //     try {
+      //       const res = await fetch("/repos");
+      //       if (!res.ok) throw new Error("Error loading repositories");
+      //       const repos = await res.json();
+      //       // console.log("DADOS DO BACKEND:", repos);
+
+      //       if (!repos || repos.length === 0) {
+      //         list.innerHTML =
+      //           '<p class="text-center">You dont have any repositories yet.</p>';
+      //         return;
+      //       }
+
+      //       list.innerHTML = "";
+      //       repos.forEach((repo) => {
+      //         // Extrair owner (assumindo a estrutura normal do GitHub JSON)
+      //         const ownerLogin = repo.owner_login;
+
+      //         list.innerHTML += `
+      //     <div class="repo-item" id="repo-${repo.name}">
+      //         <div class="repo-header">
+      //             <div>
+      //                 <h3 class="repo-title">${repo.name}</h3>
+      //                 <div class="repo-meta">
+      //                     <span class="badge">${repo.visibility === "private" ? "🔒 Private" : "🌍 Public"}</span>
+      //                 </div>
+      //             </div>
+      //             <div class="repo-actions">
+      //                 <button class="secondary" onclick="toggleDetails('${repo.name}')">Details</button>
+      //                 <button class="secondary" onclick="loadPRs('${ownerLogin}', '${repo.name}')">Open PRs</button>
+      //                 <button class="danger" onclick="deleteRepo('${ownerLogin}', '${repo.name}')">Delete</button>
+      //             </div>
+      //         </div>
+
+      //         <div id="details-${repo.name}" class="pr-container" style="display: none; text-align: left;">
+      //             <p><strong>Full Name:</strong> ${repo.full_name}</p>
+      //             <p><strong>Owner:</strong> ${repo.owner_login}</p>
+      //             <p><strong>URL:</strong> <a href="${repo.html_url}" target="_blank">${repo.html_url}</a></p>
+      //             <p><strong>Clone URL (HTTP):</strong> <a href="${repo.clone_url}" target="_blank">${repo.clone_url}</a></p>
+      //             <p><strong>Clone URL (SSH):</strong> <a href="${repo.ssh_url}" target="_blank">${repo.ssh_url}</a></p>
+      //             <p>
+      //                 <button class="secondary" style="margin-left: 10px;" onclick="changeVisibility('${ownerLogin}', '${repo.name}', '${repo.visibility}')">
+      //                     Change Visibility
+      //                 </button>
+      //             </p>
+      //         </div>
+
+      //         <div class="pr-container" id="prs-${repo.name}"></div>
+      //     </div>
+      // `;
+      //       });
+      //     } catch (err) {
+      //       list.innerHTML = `<p class="text-center" style="color: var(--danger);">Error. Verify your GITHUB_TOKEN.</p>`;
+      //     }
+      //   }
+
+      async function changeVisibility(owner, repo, currentVisibility) {
+        const newVisibility =
+          currentVisibility === "private" ? "public" : "private";
+        const confirmation = prompt(
+          `Atention: You're going to change the repository visibility from "${currentVisibility}" to "${newVisibility}".\n\nType "Confirm" to continue..`,
+        );
+
+        if (confirmation.toLowerCase() !== "confirm") {
+          if (confirmation !== null) {
+            alert("Wrong confirmation. The repository hasn't been updated.");
+          }
+          return;
+        }
+
+        try {
+          // Nota: Certifica-te que esta rota existe no teu Go (PATCH /repos/{owner}/{repo})
+          const res = await fetch(`/repos/${owner}/${repo}/change-visibility`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ private: newVisibility === "private" }),
+          });
+
+          if (!res.ok) throw new Error("Error changing visibility");
+
+          alert("Visibility changed successfully!");
+          loadRepos(); // Recarrega a lista
+        } catch (err) {
+          alert("Error changing visibility. Please try again.");
+        }
+      }
+
+      function toggleDetails(repoName) {
+        const detailsDiv = document.getElementById(`details-${repoName}`);
+        if (detailsDiv.style.display === "none") {
+          detailsDiv.style.display = "block";
+        } else {
+          detailsDiv.style.display = "none";
+        }
+      }
+
+      // --- 3. CRIAR REPOSITÓRIO ---
+      async function createRepo() {
+        const nameInput = document.getElementById("repoName");
+        const msgBox = document.getElementById("createMsg");
+        const name = nameInput.value.trim();
+
+        if (!name) {
+          msgBox.innerHTML =
+            '<span style="color: var(--danger);">Write the repository name.</span>';
+          return;
+        }
+
+        msgBox.innerHTML =
+          '<span style="color: var(--text-muted);">Creation in progress...</span>';
+
+        try {
+          const res = await fetch("/repos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: name,
+            }),
+          });
+
+          if (!res.ok) throw new Error("Creation error");
+
+          msgBox.innerHTML =
+            '<span style="color: #2da44e;">Sucessfully created!</span>';
+          nameInput.value = "";
+          setTimeout(() => {
+            document.getElementById('repoModal').close();
+            msgBox.innerHTML = '';
+            nameInput.value = '';
+        }, 1000);
+
+          loadRepos(); // Atualiza a lista
+        } catch (err) {
+          msgBox.innerHTML =
+            '<span style="color: var(--danger);">Error in the repository creation.</span>';
+        }
+      }
+
+      // --- 4. APAGAR REPOSITÓRIO ---
+      async function deleteRepo(owner, repo) {
+        // 1. Pedir confirmação com o nome do repo
+        const confirmation = prompt(
+          `IRREVERSIBLE ACTION!\n\nThis will permanently delete the repository: "${repo}"\n\nTo confirm, type the following to confirm the deletion: "${owner}/${repo}"`,
+        );
+
+        confirmation_owner = confirmation.split("/")[0];
+        confirmation_name = confirmation.split("/")[1];
+
+        if (confirmation_owner !== owner && confirmation_name !== repo) {
+          if (confirmation !== null) {
+            alert("Wrong confirmation. The repository hasn't been deleted.");
+          }
+          return;
+        }
+
+        // 2. Chamar a API
+        try {
+          const res = await fetch(`/repos/${owner}/${repo}`, {
+            method: "DELETE",
+          });
+
+          if (res.status === 403) {
+            alert(
+              "Error: You don't have permission to delete this repository.",
+            );
+          } else if (!res.ok) {
+            throw new Error("Error deleting repository");
+          } else {
+            alert(`Repository "${repo}" sucessfully deleted!`);
+            loadRepos(); // Atualiza a lista
+          }
+        } catch (err) {
+          alert(
+            "Error! Please verify if your token has 'delete_repo' permissions.",
+          );
+        }
+      }
+
+      // --- 5. LISTAR PULL REQUESTS ---
+      async function loadPRs(owner, repo) {
+        const prDiv = document.getElementById(`prs-${repo}`);
+
+        // Toggle display
+        if (prDiv.style.display === "block") {
+          prDiv.style.display = "none";
+          return;
+        }
+
+        prDiv.style.display = "block";
+        prDiv.innerHTML =
+          '<span class="loader">Searching for Pull Requests...</span>';
+
+        try {
+          const res = await fetch(`/repos/${owner}/${repo}/prs?limit=5`);
+          if (!res.ok) throw new Error("Erro");
+
+          const prs = await res.json();
+
+          if (!prs || prs.length === 0) {
+            prDiv.innerHTML =
+              "Don't Exists Open Pull Requests in this Repository.";
+            return;
+          }
+
+          let html = "<strong>Open Pull Requests:</strong><br>";
+          prs.forEach((pr) => {
+            html += `<div class="pr-item">#${pr.number} - <a href="${pr.html_url}" target="_blank">${pr.title}</a></div>`;
+          });
+          prDiv.innerHTML = html;
+        } catch (err) {
+          prDiv.innerHTML =
+            '<span style="color: var(--danger);">Pull Request Error.</span>';
+        }
+      }
+
+      // Inicializar
+      window.onload = () => {
+        checkHealth();
+        loadRepos();
+        // Verifica a saúde da API a cada 10 segundos
+        setInterval(checkHealth, 10000);
+      };
+    </script>
+  </body>
+</html>

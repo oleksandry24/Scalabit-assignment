@@ -89,7 +89,7 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 
 	repoInfo, err := h.GithubService.CheckRepo(r.Context(), owner, repo)
 	if err != nil {
-		http.Error(w, "Failed to check repository, Not Found!", http.StatusInternalServerError)
+		http.Error(w, "Failed to check repository, Not Found!", http.StatusNotFound)
 		return
 	}
 
