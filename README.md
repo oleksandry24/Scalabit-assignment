@@ -87,7 +87,7 @@ Permanently deletes a repository.
 
 Retrieves the most recent open pull requests for a specific repository.
 
-- **URL:** `GET /repos/{owner}/{repo}/pulls?limit=5`
+- **URL:** `GET /repos/{owner}/{repo}/prs`
 - **URL Params:** `limit` (Optional, defaults to a specific number)
 - **Success Response:** `200 OK`
 - **Response Body:** Array of the top N open Pull Request objects.
@@ -96,7 +96,7 @@ Retrieves the most recent open pull requests for a specific repository.
 
 Updated the visibility of a repository.
 
-- **URL:** `PATCH /repos/{owner}/{repo}`
+- **URL:** `PATCH /repos/{owner}/{repo}/change-visibility`
 - **Request Body:**
 
 ```json
