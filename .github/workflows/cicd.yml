@@ -246,7 +246,7 @@ jobs:
       - name: Run Smoke Tests against Minikube
         run: |
           echo "Starting smoke tests..."
-          SERVICE_URL=$(minikube service scalabit-challenge-api --url)
+          SERVICE_URL=$(minikube service scalabit-challenge-api -n scalabit-challenge --url)
           echo "Testing endpoint: $SERVICE_URL/health"
 
           HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 5 --retry-delay 5 --retry-connrefused "$SERVICE_URL/health")
