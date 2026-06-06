@@ -25,6 +25,7 @@ spec:
 
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -37,6 +38,9 @@ spec:
                 secretKeyRef:
                   name: github-token
                   key: GITHUB-TOKEN
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: "/tmp"
           readinessProbe:
             httpGet:
               path: /health
@@ -49,3 +53,7 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 5
+
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}
