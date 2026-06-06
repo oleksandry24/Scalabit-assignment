@@ -31,7 +31,7 @@ GITHUB_TOKEN=ghp_your_personal_access_token_here
 
 ```
 
-### 2. Run the Application locally
+### 2. Run the Application (localhost)
 
 ```bash
 go mod tidy
@@ -39,9 +39,7 @@ go run ./cmd/api/main.go
 
 ```
 
-Dashboard will be implemented soon...
-
-<!-- The server will start on `http://localhost:8080`. -->
+The server will start on `http://localhost:8080`.
 
 ---
 

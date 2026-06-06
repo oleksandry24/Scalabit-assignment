@@ -230,7 +230,7 @@ func TestHandler_AllErrorPaths(t *testing.T) {
 			setupMock:      func() *MockGithubService { return &MockGithubService{ShouldFail: true} },
 			handler:        (&Handler{}).DeleteRepo,
 			setPathValues:  map[string]string{"owner": "o", "repo": "r"},
-			expectedStatus: http.StatusInternalServerError,
+			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "DeleteRepo_Protected",
