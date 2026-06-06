@@ -148,6 +148,8 @@ jobs:
         integration-validate-pipeline,
         integration-go-secrets,
         integration-go-sast,
+        integration-sca,
+        integration-iac-scan,
       ]
     runs-on: ubuntu-latest
     steps:
@@ -158,13 +160,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker Image
-        run: docker build -t github-api-manager:latest .
+        run: docker build -t scalabit-challenge-api:latest .
 
       - name: Container Verification
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker run -d --name api-go-test -p 8080:8080 -e GITHUB_TOKEN="${GITHUB_TOKEN}" github-api-manager:latest
+          docker run -d --name api-go-test -p 8080:8080 -e GITHUB_TOKEN="${GITHUB_TOKEN}" scalabit-challenge-api:latest
 
       - name: Wait for Container to be Healthy
         run: |
