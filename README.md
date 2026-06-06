@@ -170,7 +170,3 @@ kubectl rollout restart deployment/scalabit-challenge-api -n scalabit-challenge
 minikube service scalabit-challenge-api-svc -n scalabit-challenge
 
 ```
-
-```
-
-```
