@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: scalabit-challenge-api-svc
+  namespace: scalabit-challenge
 spec:
   type: NodePort
   selector:
