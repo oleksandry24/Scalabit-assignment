@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scalabit-challenge-api
+  namespace: scalabit-challenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scalabit-challenge-api
+  template:
+    metadata:
+      labels:
+        app: scalabit-challenge-api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10000
+        runAsGroup: 10000
+        fsGroup: 10000
+
+      containers:
+        - name: github-manager-api
+          image: scalabit-challenge-api:latest
+          imagePullPolicy: Never
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          ports:
+            - containerPort: 8080
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: github-token
+                  key: GITHUB-TOKEN
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: "/tmp"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+      volumes:
+        - name: tmp-volume
+          emptyDir: {}

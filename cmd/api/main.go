@@ -15,6 +15,21 @@ import (
 	"github.com/oleksandry24/github-api-manager/internal/handlers"
 )
 
+// func getGitHubToken() string {
+// 	tokenBytes, err := os.ReadFile("/etc/secrets/GITHUB-TOKEN")
+// 	if err == nil {
+// 		return strings.TrimSpace(string(tokenBytes))
+// 	}
+
+// 	token := os.Getenv("GITHUB_TOKEN")
+// 	if token != "" {
+// 		return strings.TrimSpace(token)
+// 	}
+
+// 	log.Fatal("CRITICAL: GitHub token not found in /etc/secrets/GITHUB-TOKEN or GITHUB_TOKEN environment variable")
+// 	return ""
+// }
+
 func main() {
 
 	err := godotenv.Load()
@@ -23,6 +38,8 @@ func main() {
 	}
 
 	token := os.Getenv("GITHUB_TOKEN")
+
+	// token := getGitHubToken()
 	if token == "" {
 		log.Fatal("fATAL: GITHUB_TOKEN environment variable is required")
 	}

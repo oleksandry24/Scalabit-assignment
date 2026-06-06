@@ -36,8 +36,17 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          go test -v -race -cover ./...
-      
+          go test -v -race -cover -coverprofile=coverage.out ./internal/handlers/...
+
+          TCOVERAGE=$(go tool cover -func=coverage.out | grep total | grep | awk '{print substr($3, 1, length($3)-1)}')
+          echo "Total Coverage is $TCOVERAGE%"
+
+          if (( $(echo "$TCOVERAGE < 70.0" | bc -l) )); then
+            echo "Test coverage ($TCOVERAGE%) is below the 70% threshold."
+            exit 1
+          fi
+          echo "Test coverage ($TCOVERAGE%) is acceptable."
+
       # - name: Run Integration Tests
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,6 +110,36 @@ jobs:
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           gosec ./...
 
+  integration-sca:
+    name: SCA Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          ignore-unfixed: true
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+  integration-iac-scan:
+    name: IaC Security Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy for IaC (Kubernetes & Dockerfile)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config" # look at YAML and Dockerfiles
+          scan-ref: "." # Scans the entire repository
+          format: "table"
+          exit-code: "1" # Breack
+          severity: "CRITICAL,HIGH"
+
   delivery:
     name: Build Docker Image (Delivery)
     needs:
@@ -109,6 +148,8 @@ jobs:
         integration-validate-pipeline,
         integration-go-secrets,
         integration-go-sast,
+        integration-sca,
+        integration-iac-scan,
       ]
     runs-on: ubuntu-latest
     steps:
@@ -119,13 +160,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker Image
-        run: docker build -t github-api-manager:latest .
+        run: docker build -t scalabit-challenge-api:latest .
 
       - name: Container Verification
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker run -d --name api-go-test -p 8080:8080 -e GITHUB_TOKEN="${GITHUB_TOKEN}" github-api-manager:latest
+          docker run -d --name api-go-test -p 8080:8080 -e GITHUB_TOKEN="${GITHUB_TOKEN}" scalabit-challenge-api:latest
 
       - name: Wait for Container to be Healthy
         run: |
@@ -143,6 +184,15 @@ jobs:
           done
           echo "Container is healthy!"
 
+      - name: Scan Docker Image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "scalabit-challenge-api:latest"
+          format: "table"
+          exit-code: "1" # if critical issues are found - break
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+
       - name: Show Container logs on failure
         if: failure()
         run: docker logs api-go-test
@@ -153,39 +203,56 @@ jobs:
           docker stop api-go-test || true
           docker rm -f api-go-test || true
 
-  # deploy:
-  #   name: Deploy to Production
-  #   needs: [delivery]
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v6
+  deploy:
+    name: Deploy to Production
+    needs: [delivery]
+    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
 
-  #     - name: Start Minicube
-  #       uses: medyagh/setup-minikube@latest
+      - name: Start Minicube
+        uses: medyagh/setup-minikube@latest
 
-  #     - name: RUN Image Builder
-  #       run: |
-  #       eval $(minikube docker-env)
-  #       docker build -t github-api-manager:latest .
+      - name: RUN Image Builder
+        run: |
+          eval "$(minikube docker-env)"
+          docker build -t scalabit-challenge-api:latest .
 
-  #     - name: Kubernets Secrets
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #       run: |
-  #       kubectl create secret generic github-token \ --from-literal=GITHUB-TOKEN=${GITHUB_TOKEN} \
-  #       --dry-run=client -o yaml | kubectl apply -f -
+      - name: Kubernets Secrets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kubectl create namespace scalabit-challenge --dry-run=client -o yaml | kubectl apply -f -
 
-  #     - name: Deploy to Kubernets
-  #       run: kubectl apply -f k8s/
+          kubectl create secret generic github-token --from-literal=GITHUB-TOKEN="${GITHUB_TOKEN}" \
+          -n scalabit-challenge --dry-run=client -o yaml | kubectl apply -f -
 
-  #     - name: Verify Deployment
-  #       run: |
-  #         kubectl rollout status deployment/scalabit-challenge-api --timeout=90s || (kubectl get pods && kubectl logs -l app=scalabit-challenge-api && exit 1)
+      - name: Deploy to Kubernets
+        run: kubectl apply -f k8s/
 
-  #     - name: Show Status
-  #       if: always()
-  #       run: |
-  #       kubectl get pods
-  #       kubectl get services
+      - name: Verify Deployment
+        run: |
+          kubectl rollout status deployment/scalabit-challenge-api -n scalabit-challenge --timeout=90s || \
+          (kubectl get pods -n scalabit-challenge && kubectl logs -l app=scalabit-challenge-api -n scalabit-challenge && exit 1)
+
+      - name: Show Status
+        if: always()
+        run: |
+          kubectl get pods
+          kubectl get services
+
+      - name: Run Smoke Tests against Minikube
+        run: |
+          echo "Starting smoke tests..."
+          SERVICE_URL=$(minikube service scalabit-challenge-api-svc -n scalabit-challenge --url)
+          echo "Testing endpoint: $SERVICE_URL/health"
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --retry 5 --retry-delay 5 --retry-connrefused "$SERVICE_URL/health")
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Smoke test failed! HTTP Status: $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Smoke test passed! Application is live and healthy."
