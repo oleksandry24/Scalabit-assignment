@@ -59,8 +59,8 @@ func (c *Client) CreateRepo(ctx context.Context, name string) (*github.Repositor
 
 	// create a new repository with the given name and confirm if the token is valid
 	repo := &github.Repository{
-		Name:    github.String(name),
-		Private: github.Bool(false),
+		Name:    github.Ptr(name),
+		Private: github.Ptr(false),
 	}
 
 	createdRepo, _, err := c.Repositories.Create(ctx, "", repo) // "" means user checked by the token
@@ -100,7 +100,7 @@ func (c *Client) CheckRepo(ctx context.Context, owner, repo string) (*github.Rep
 func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error) {
 
 	repoUpdate := &github.Repository{
-		Private: github.Bool(private),
+		Private: github.Ptr(private),
 	}
 
 	updatedRepo, _, err := c.Repositories.Edit(ctx, owner, repo, repoUpdate)

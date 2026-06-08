@@ -25,10 +25,10 @@ func (m *MockGithubService) CreateRepo(ctx context.Context, name string) (*githu
 	}
 
 	return &github.Repository{
-		Name:       github.String(name),
-		Visibility: github.String("private"),
+		Name:       github.Ptr(name),
+		Visibility: github.Ptr("private"),
 		Owner: &github.User{
-			Login: github.String("testuser"),
+			Login: github.Ptr("testuser"),
 		},
 	}, nil
 }
@@ -46,14 +46,14 @@ func (m *MockGithubService) ListRepos(ctx context.Context) ([]*github.Repository
 	}
 	return []*github.Repository{
 		{
-			Name:       github.String("frontend-app"),
-			Visibility: github.String("public"),
-			Owner:      &github.User{Login: github.String("testuser")},
+			Name:       github.Ptr("frontend-app"),
+			Visibility: github.Ptr("public"),
+			Owner:      &github.User{Login: github.Ptr("testuser")},
 		},
 		{
-			Name:       github.String("backend-api"),
-			Visibility: github.String("private"),
-			Owner:      &github.User{Login: github.String("testuser")},
+			Name:       github.Ptr("backend-api"),
+			Visibility: github.Ptr("private"),
+			Owner:      &github.User{Login: github.Ptr("testuser")},
 		},
 	}, nil
 }
@@ -64,14 +64,14 @@ func (m *MockGithubService) ListOpenPRs(ctx context.Context, owner, repo string)
 	}
 	prs := []*github.PullRequest{
 		{
-			Title: github.String("commit 1"),
-			User:  &github.User{Login: github.String("testuser")},
-			State: github.String("open"),
+			Title: github.Ptr("commit 1"),
+			User:  &github.User{Login: github.Ptr("testuser")},
+			State: github.Ptr("open"),
 		},
 		{
-			Title: github.String("commit 2"),
-			User:  &github.User{Login: github.String("testuser-2")},
-			State: github.String("open"),
+			Title: github.Ptr("commit 2"),
+			User:  &github.User{Login: github.Ptr("testuser-2")},
+			State: github.Ptr("open"),
 		},
 	}
 	return prs, nil
@@ -83,23 +83,23 @@ func (m *MockGithubService) CheckRepo(ctx context.Context, owner, repo string) (
 	}
 	if m.ShouldProtect {
 		// Return a repo with forks to trigger the 403 Forbidden block
-		return &github.Repository{ForksCount: github.Int(5)}, nil
+		return &github.Repository{ForksCount: github.Ptr(5)}, nil
 	}
 
 	if repo == "linux" {
 		repoInfo := &github.Repository{
-			Name:       github.String("linux"),
-			ForksCount: github.Int(500), // Trigger the guardrail!
-			OpenIssues: github.Int(100),
-			Size:       github.Int(1500),
+			Name:       github.Ptr("linux"),
+			ForksCount: github.Ptr(500), // Trigger the guardrail!
+			OpenIssues: github.Ptr(100),
+			Size:       github.Ptr(1500),
 		}
 		return repoInfo, nil
 	}
 	return &github.Repository{
-		Name:       github.String(repo),
-		ForksCount: github.Int(0),
-		OpenIssues: github.Int(0),
-		Size:       github.Int(100),
+		Name:       github.Ptr(repo),
+		ForksCount: github.Ptr(0),
+		OpenIssues: github.Ptr(0),
+		Size:       github.Ptr(100),
 	}, nil
 }
 
@@ -113,8 +113,8 @@ func (m *MockGithubService) ChangeRepoVisibility(ctx context.Context, owner, rep
 	}
 
 	return &github.Repository{
-		Name:       github.String(repo),
-		Visibility: github.String(vis),
+		Name:       github.Ptr(repo),
+		Visibility: github.Ptr(vis),
 	}, nil
 }
 
