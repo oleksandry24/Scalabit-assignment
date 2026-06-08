@@ -29,7 +29,7 @@ type RepositoryService interface {
 // the real github client using the real token
 func NewClient(token string) RepositoryService {
 	if token == "" || !strings.HasPrefix(token, "ghp_") && !strings.HasPrefix(token, "github_pat_") {
-		ghClient, err := github.NewClient(nil)
+		ghClient, err := github.NewClient()
 
 		if err != nil {
 			return &Client{ghClient}
