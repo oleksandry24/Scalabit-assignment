@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v88/github"
 )
 
 // MOCK CLIENT

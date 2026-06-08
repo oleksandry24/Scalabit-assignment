@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v88/github"
 )
 
 // hols the official client isntance
@@ -29,13 +29,24 @@ type RepositoryService interface {
 // the real github client using the real token
 func NewClient(token string) RepositoryService {
 	if token == "" || !strings.HasPrefix(token, "ghp_") && !strings.HasPrefix(token, "github_pat_") {
-		return &Client{github.NewClient(nil)}
+		ghClient, err := github.NewClient(nil)
+
+		if err != nil {
+			return &Client{ghClient}
+		}
 	}
 
 	// authenticate the client with the token and check if the token is valid by making a simple API call
-	ghClient := github.NewClient(nil).WithAuthToken(token)
+	ghClient, err := github.NewClient(github.WithAuthToken(token))
+	if err != nil {
+		panic(fmt.Sprintf("Erro ao inicializar o cliente: %v", err))
+	}
 
-	_, _, err := ghClient.Users.Get(context.Background(), "")
+	if err != nil {
+		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
+	}
+
+	_, _, err = ghClient.Users.Get(context.Background(), "")
 	if err != nil {
 		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
 	}
