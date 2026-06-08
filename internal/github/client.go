@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/go-github/v59/github"
+	"github.com/google/go-github/v88/github"
 )
 
 // hols the official client isntance
@@ -29,13 +29,21 @@ type RepositoryService interface {
 // the real github client using the real token
 func NewClient(token string) RepositoryService {
 	if token == "" || !strings.HasPrefix(token, "ghp_") && !strings.HasPrefix(token, "github_pat_") {
-		return &Client{github.NewClient(nil)}
+		ghClient, err := github.NewClient()
+
+		if err != nil {
+			return &Client{ghClient}
+		}
 	}
 
 	// authenticate the client with the token and check if the token is valid by making a simple API call
-	ghClient := github.NewClient(nil).WithAuthToken(token)
+	ghClient, err := github.NewClient(github.WithAuthToken(token))
 
-	_, _, err := ghClient.Users.Get(context.Background(), "")
+	if err != nil {
+		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
+	}
+
+	_, _, err = ghClient.RateLimit.Get(context.Background())
 	if err != nil {
 		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
 	}
@@ -48,8 +56,8 @@ func (c *Client) CreateRepo(ctx context.Context, name string) (*github.Repositor
 
 	// create a new repository with the given name and confirm if the token is valid
 	repo := &github.Repository{
-		Name:    github.String(name),
-		Private: github.Bool(false),
+		Name:    github.Ptr(name),
+		Private: github.Ptr(false),
 	}
 
 	createdRepo, _, err := c.Repositories.Create(ctx, "", repo) // "" means user checked by the token
@@ -89,7 +97,7 @@ func (c *Client) CheckRepo(ctx context.Context, owner, repo string) (*github.Rep
 func (c *Client) ChangeRepoVisibility(ctx context.Context, owner, repo string, private bool) (*github.Repository, error) {
 
 	repoUpdate := &github.Repository{
-		Private: github.Bool(private),
+		Private: github.Ptr(private),
 	}
 
 	updatedRepo, _, err := c.Repositories.Edit(ctx, owner, repo, repoUpdate)

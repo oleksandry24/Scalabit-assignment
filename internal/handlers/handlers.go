@@ -8,7 +8,7 @@ import (
 
 	"github.com/oleksandry24/github-api-manager/internal/github"
 
-	gh "github.com/google/go-github/v59/github"
+	gh "github.com/google/go-github/v88/github"
 )
 
 type Handler struct {
