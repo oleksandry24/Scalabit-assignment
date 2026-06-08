@@ -38,15 +38,12 @@ func NewClient(token string) RepositoryService {
 
 	// authenticate the client with the token and check if the token is valid by making a simple API call
 	ghClient, err := github.NewClient(github.WithAuthToken(token))
-	if err != nil {
-		panic(fmt.Sprintf("Erro ao inicializar o cliente: %v", err))
-	}
 
 	if err != nil {
 		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
 	}
 
-	_, _, err = ghClient.Users.Get(context.Background(), "")
+	_, _, err = ghClient.RateLimit.Get(context.Background())
 	if err != nil {
 		panic(fmt.Sprintf("Invalid GitHub token: %v", err))
 	}
